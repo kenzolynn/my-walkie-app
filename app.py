@@ -11,7 +11,7 @@ if not firebase_admin._apps:
         cred = credentials.Certificate("my-key-123.json") 
         firebase_admin.initialize_app(cred, {
             # သင့် Firebase Database URL ကို ဒီနေရာမှာ အမှန်ထည့်ပါ
-            'databaseURL': 'https://your-project-id.firebaseio.com/' 
+            'databaseURL': 'https://talk-3f6ec-default-rtdb.firebaseio.com/' 
         })
     except Exception as e:
         st.error(f"Firebase ချိတ်ဆက်မှု မှားယွင်းနေပါသည်: {e}")
