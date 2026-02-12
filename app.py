@@ -7,7 +7,7 @@ import time
 if not firebase_admin._apps:
     cred = credentials.Certificate("my-key-123.json")
     firebase_admin.initialize_app(cred, {
-        'databaseURL': 'ဒီနေရာမှာ_သင့်ရဲ့_URL_အသစ်ကိုထည့်ပါ'
+        'databaseURL': 'https://talk-3f6ec-default-rtdb.firebaseio.com'
     })
 
 st.title("📟 Walkie-Talkie Test")
