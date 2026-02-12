@@ -7,45 +7,50 @@ import time
 # --- ၁။ FIREBASE SETTINGS ---
 if not firebase_admin._apps:
     try:
-        # သင့် JSON သော့ဖိုင်နာမည်ကို ဒီနေရာမှာ အမှန်ထည့်ပါ
+        # သင်ပေးထားသော JSON ဖိုင်နာမည်ကို အစားထိုးထားသည်
         cred = credentials.Certificate("my-key-123.json") 
+        
         firebase_admin.initialize_app(cred, {
-            # သင့် Firebase Database URL ကို ဒီနေရာမှာ အမှန်ထည့်ပါ
-            'databaseURL': 'https://talk-3f6ec-default-rtdb.firebaseio.com/' 
+            # သင်ပေးထားသော Database URL ကို အစားထိုးထားသည်
+            'databaseURL': 'https://talk-3f6ec-default-rtdb.firebaseio.com' 
         })
     except Exception as e:
         st.error(f"Firebase ချိတ်ဆက်မှု မှားယွင်းနေပါသည်: {e}")
 
-# --- ၂။ APP INTERFACE ---
-st.set_page_config(page_title="Business Walkie-Talkie", layout="centered")
-st.title("📻 Internal Walkie-Talkie")
+# --- ၂။ APP DESIGN ---
+st.set_page_config(page_title="Internal Walkie-Talkie", layout="centered")
+st.title("📻 Walkie-Talkie App")
 
-# Sidebar တွင် နာမည်သတ်မှတ်ခြင်း
-user_name = st.sidebar.text_input("သင့်အမည် (Staff Name)", value="Staff-1")
-st.sidebar.write("Status: Online 🟢")
+# အသုံးပြုသူ နာမည်သတ်မှတ်ရန်
+user_name = st.sidebar.text_input("သင့်အမည်", value="Staff-1")
+st.sidebar.markdown("---")
+st.sidebar.info("အင်တာနက်ရှိလျှင် နေရာမရွေး အသုံးပြုနိုင်ပါသည်။")
 
-# --- ၃။ စကားပြောရန် (MIC) ---
-st.write(f"မင်္ဂလာပါ **{user_name}**၊ စကားပြောရန် အောက်ကခလုတ်ကို နှိပ်ပါ။")
+# --- ၃။ WALKIE TALKIE BUTTON ---
+st.subheader("စကားပြောရန် ခလုတ်ကို နှိပ်ပါ")
 audio_data = mic_recorder(
-    start_prompt="🎤 ပြောမည် (Start)",
-    stop_prompt="🛑 ရပ်မည် (Stop)",
+    start_prompt="🎤 စကားပြောမည်",
+    stop_prompt="🛑 ရပ်မည်",
     key='recorder'
 )
 
+# အသံဖမ်းပြီးလျှင် Database သို့ ပို့ခြင်း
 if audio_data:
-    # အသံဖိုင်ကို Database သို့ ပို့ခြင်း
-    ref = db.reference('/chat_messages')
-    ref.push({
-        'name': user_name,
-        'data': audio_data['bytes'].hex(),
-        'type': 'audio',
-        'timestamp': time.time()
-    })
-    st.success("အသံပို့ပြီးပါပြီ!")
-    time.sleep(1)
-    st.rerun()
+    try:
+        ref = db.reference('/chat_messages')
+        ref.push({
+            'name': user_name,
+            'data': audio_data['bytes'].hex(),
+            'type': 'audio',
+            'timestamp': time.time()
+        })
+        st.success("အသံပို့ပြီးပါပြီ!")
+        time.sleep(1)
+        st.rerun()
+    except Exception as e:
+        st.error(f"ပို့ဆောင်မှု မအောင်မြင်ပါ: {e}")
 
-# --- ၄။ စာပို့ရန် (CHAT) ---
+# --- ၄။ CHAT INPUT ---
 chat_msg = st.chat_input("စာရေးပို့ရန်...")
 if chat_msg:
     db.reference('/chat_messages').push({
@@ -56,17 +61,24 @@ if chat_msg:
     })
     st.rerun()
 
-# --- ၅။ စကားပြောထားသည်များကို ပြသခြင်း ---
+# --- ၅။ DISPLAY MESSAGES ---
 st.divider()
-messages = db.reference('/chat_messages').order_by_child('timestamp').limit_to_last(10).get()
+st.subheader("လတ်တလော ပြောဆိုချက်များ")
 
-if messages:
-    for key in reversed(messages):
-        msg = messages[key]
-        with st.chat_message(msg['name']):
-            if msg['type'] == 'text':
-                st.write(f"**{msg['name']}:** {msg['data']}")
-            else:
-                st.write(f"**{msg['name']} (Voice):**")
-                audio_bytes = bytes.fromhex(msg['data'])
-                st.audio(audio_bytes)
+try:
+    messages = db.reference('/chat_messages').order_by_child('timestamp').limit_to_last(10).get()
+
+    if messages:
+        for key in reversed(messages):
+            msg = messages[key]
+            with st.chat_message(msg['name']):
+                if msg['type'] == 'text':
+                    st.write(f"**{msg['name']}:** {msg['data']}")
+                else:
+                    st.write(f"**{msg['name']} (Voice):**")
+                    audio_bytes = bytes.fromhex(msg['data'])
+                    st.audio(audio_bytes)
+    else:
+        st.write("ပြောဆိုထားသည်များ မရှိသေးပါ။")
+except Exception as e:
+    st.info("Database ချိတ်ဆက်မှုကို စောင့်ဆိုင်းနေပါသည်။ Rules ကို True ပေးထားရန် လိုအပ်ပါသည်။")
